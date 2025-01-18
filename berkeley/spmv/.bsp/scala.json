@@ -1,0 +1,26 @@
+{
+  "name": "scala",
+  "argv": [
+    "/home/fuguetc/Work/openhw/tools/scala3-3.5.2-x86_64-pc-linux/bin/scala-cli",
+    "--cli-default-scala-version",
+    "3.5.2",
+    "--repository",
+    "file:///home/fuguetc/Work/openhw/tools/scala3-3.5.2-x86_64-pc-linux/maven2",
+    "--prog-name",
+    "scala",
+    "bsp",
+    "--json-options",
+    "/home/fuguetc/Work/openhw/riscvapps/spmv/.scala-build/ide-options-v2.json",
+    "--json-launcher-options",
+    "/home/fuguetc/Work/openhw/riscvapps/spmv/.scala-build/ide-launcher-options.json",
+    "--envs-file",
+    "/home/fuguetc/Work/openhw/riscvapps/spmv/.scala-build/ide-envs.json",
+    "/home/fuguetc/Work/openhw/riscvapps/spmv/spmv_gendata.scala"
+  ],
+  "version": "1.4.3",
+  "bspVersion": "2.1.1",
+  "languages": [
+    "scala",
+    "java"
+  ]
+}

@@ -12,9 +12,11 @@
 
 #ifdef _RS_RISCVBARELIB_H_
 
+#ifdef _INITARRAY_
 #include "INIT_ARRAY1.h"
 #include "INIT_ARRAY2.h"
 #include "INIT_ARRAY3.h"
+#endif
 
 RS_RISCVBARELIB::RS_RISCVBARELIB(const RSOpts& opts) :
   RSBaseImpl("RS_RISCVBARELIB", opts.getKernelTypeFromName(opts.getKernelName())),

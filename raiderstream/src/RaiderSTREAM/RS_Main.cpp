@@ -529,25 +529,37 @@ void runBenchMPICUDA( RSOpts *Opts ) {
 #endif
 
 /************************************************************************************/
-int main( int argc, char **argv ) {
-  RSOpts *Opts = new RSOpts();
-  char *__argv[5];
-  int __argc = 5;
+int __main( int argc, char **argv );
 
+int main( int argc, char **argv ) {
+
+#ifdef _ENABLE_RISCVBARELIB_
+  const int __argc = 5;
+  char *__argv[5];
+
+#define __XSTR(x) __STR(x)
+#define __STR(x) #x
   for (int i = 0; i < __argc; i++) {
     __argv[i] = (char*)malloc(20);
   }
   strcpy(__argv[0], "rs.x");
   strcpy(__argv[1], "-k");
-  strcpy(__argv[2], "sg_add");
+  strcpy(__argv[2], __XSTR(STREAM_KERNEL));
   strcpy(__argv[3], "-s");
-#define __XSTR(x) __STR(x)
-#define __STR(x) #x
   strcpy(__argv[4], __XSTR(STREAM_ARRAY_SIZE));
 #undef __STR
 #undef __XSTR
+  return __main( __argc, __argv );
 
-  if ( !Opts->parseOpts(__argc, __argv) ) {
+#else
+  return __main( argc, argv);
+#endif
+}
+
+int __main( int argc, char **argv ) {
+  RSOpts *Opts = new RSOpts();
+
+  if ( !Opts->parseOpts( argc, argv) ) {
     std::cout << "Failed to parse command line options" << std::endl;
     delete Opts;
     return -1;

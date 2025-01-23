@@ -139,7 +139,7 @@ public:
   }
 
   double mySecond() {
-    return cpu_cycles()/CYCLES_PER_SEC;
+    return (static_cast <double> (cpu_cycles()))/CYCLES_PER_SEC;
   }
 
   int checkTick() {

@@ -25,9 +25,10 @@
 void init_vm(uintptr_t start_func);
 
 //  clint handler
-void clint_timer_handler(uintptr_t mcause, uintptr_t mstatus, uintptr_t mepc)
+uintptr_t clint_timer_handler(uintptr_t mcause, uintptr_t mstatus, uintptr_t mepc)
 {
     clint_set_mtime(bsp_get_clint_driver(cpu_id()), 0);
+    return mepc;
 }
 
 //  entry point after VM initialization (vm_init)

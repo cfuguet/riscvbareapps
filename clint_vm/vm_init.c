@@ -2,7 +2,11 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <common/compiler.h>
+#include "common/compiler.h"
+#include "common/cpu.h"
+#include "common/cpu_defs.h"
+#include "common/mp.h"
+#include "common/trap_handler.h"
 
 #define PTE_V 0x001
 #define PTE_R 0x002
@@ -38,18 +42,14 @@
 #define VM_PDEBUG(...)
 #endif
 
-void init_vm(uintptr_t start_func)
+static volatile uint64_t pt0[512] __align(1 << PAGE4K_SHIFT);
+static volatile uint64_t pt1[PT1_MAX][512] __align(1 << PAGE4K_SHIFT);
+static volatile uint64_t pt2[PT2_MAX][512] __align(1 << PAGE4K_SHIFT);
+static int pt1_free;
+static int pt2_free;
+
+void map_4k_page(uint64_t vpn, uint64_t ppn)
 {
-    static volatile uint64_t pt0[512] __align(1 << PAGE4K_SHIFT);
-    static volatile uint64_t pt1[PT1_MAX][512] __align(1 << PAGE4K_SHIFT);
-    static volatile uint64_t pt2[PT2_MAX][512] __align(1 << PAGE4K_SHIFT);
-    static int pt1_free;
-    static int pt2_free;
-
-    memset((void*)pt0, 0, (1 << PAGE4K_SHIFT));
-    pt1_free = 0;
-    pt2_free = 0;
-
     uintptr_t pt1_alloc()
     {
         if (pt1_free > PT1_MAX) {
@@ -74,64 +74,88 @@ void init_vm(uintptr_t start_func)
         return __pt2;
     }
 
-    void map_4k_page(uint64_t vpn, uint64_t ppn)
-    {
-        uintptr_t pt1_base, pt2_base;
-        uint64_t  *pt0_ptr, *pt1_ptr, *pt2_ptr;
-        uint64_t  pt0_pte, pt1_pte, pt2_pte;
-        uintptr_t vpn0, vpn1, vpn2;
+    uintptr_t pt1_base, pt2_base;
+    uint64_t  *pt0_ptr, *pt1_ptr, *pt2_ptr;
+    uint64_t  pt0_pte, pt1_pte, pt2_pte;
+    uintptr_t vpn0, vpn1, vpn2;
 
-        vpn0 = (vpn >> (9*0)) & PTE_INDEX_MASK;
-        vpn1 = (vpn >> (9*1)) & PTE_INDEX_MASK;
-        vpn2 = (vpn >> (9*2)) & PTE_INDEX_MASK;
+    vpn0 = (vpn >> (9*0)) & PTE_INDEX_MASK;
+    vpn1 = (vpn >> (9*1)) & PTE_INDEX_MASK;
+    vpn2 = (vpn >> (9*2)) & PTE_INDEX_MASK;
 
-        VM_PDEBUG("debug: mapping vpn=%x to ppn=%x\n", vpn, ppn);
+    VM_PDEBUG("mapping vpn=%x to ppn=%x\n", vpn, ppn);
 
-        //  Map first level of the page table
-        pt0_ptr = (uint64_t*)pt0;
-        pt0_pte = pt0[vpn2];
-        if ((pt0_pte & PTE_V) == 0) {
-            VM_PDEBUG("debug: allocating new pt1\n");
-            pt1_base = pt1_alloc();
-            pt0_ptr[vpn2] = (addr2ppn4k(pt1_base) << 10) | PTE_V;
-        } else {
-            VM_PDEBUG("debug: reusing pt1\n");
-            pt1_base = (pt0_pte >> 10) << PAGE4K_SHIFT;
-        }
-        VM_PDEBUG("debug: pt1_base=%x\n", pt1_base);
-
-        //  Map second level of the page table
-        pt1_ptr = (uint64_t*)pt1_base;
-        pt1_pte = pt1_ptr[vpn1];
-        if ((pt1_pte & PTE_V) == 0) {
-            VM_PDEBUG("debug: allocating new pt2\n");
-            pt2_base = pt2_alloc();
-            pt1_ptr[vpn1] = (addr2ppn4k(pt2_base) << 10) | PTE_V;
-        } else {
-            VM_PDEBUG("debug: reusing pt2\n");
-            pt2_base = (pt1_pte >> 10) << PAGE4K_SHIFT;
-        }
-        VM_PDEBUG("debug: pt2_base=%x\n", pt1_base);
-
-        //  Map third level of the page table
-        pt2_ptr = (uint64_t*)pt2_base;
-        pt2_pte = pt2_ptr[vpn0];
-        if ((pt2_pte & PTE_V) == 0) {
-            pt2_ptr[vpn0] = (ppn << 10) | PTE_D | PTE_A | PTE_X | PTE_W | PTE_R | PTE_V;
-        } else {
-            printf("error: VPN already mapped\n");
-            exit(1);
-        }
-
-        VM_PDEBUG("debug: mapping completed\n");
+    //  Map first level of the page table
+    pt0_ptr = (uint64_t*)pt0;
+    pt0_pte = pt0[vpn2];
+    if ((pt0_pte & PTE_V) == 0) {
+        pt1_base = pt1_alloc();
+        pt0_ptr[vpn2] = (addr2ppn4k(pt1_base) << 10) | PTE_V;
+    } else {
+        pt1_base = (pt0_pte >> 10) << PAGE4K_SHIFT;
     }
+    VM_PDEBUG("pt1_base=%x\n", pt1_base);
+
+    //  Map second level of the page table
+    pt1_ptr = (uint64_t*)pt1_base;
+    pt1_pte = pt1_ptr[vpn1];
+    if ((pt1_pte & PTE_V) == 0) {
+        pt2_base = pt2_alloc();
+        pt1_ptr[vpn1] = (addr2ppn4k(pt2_base) << 10) | PTE_V;
+    } else {
+        pt2_base = (pt1_pte >> 10) << PAGE4K_SHIFT;
+    }
+    VM_PDEBUG("pt2_base=%x\n", pt1_base);
+
+    //  Map third level of the page table
+    pt2_ptr = (uint64_t*)pt2_base;
+    pt2_pte = pt2_ptr[vpn0];
+    if ((pt2_pte & PTE_V) == 0) {
+        pt2_ptr[vpn0] = (ppn << 10) | PTE_D | PTE_A | PTE_X | PTE_W | PTE_R | PTE_V;
+    } else {
+        printf("error: VPN already mapped\n");
+        exit(1);
+    }
+}
+
+
+uintptr_t page_fault_handler(
+        uintptr_t mcause,
+        uintptr_t mstatus,
+        uintptr_t mepc,
+        uintptr_t mtval)
+{
+    switch (mcause) {
+        case MCAUSE_INSTR_PAGE_FAULT:
+        case MCAUSE_LOAD_PAGE_FAULT:
+        case MCAUSE_STORE_PAGE_FAULT:
+        {
+            VM_PDEBUG("page fault / mapping %x address\n", mtval);
+            map_4k_page(addr2vpn4k(mtval), addr2ppn4k(mtval));
+            return mepc;
+        }
+
+        default:
+    }
+
+    printf("panic! mcause=%x / mstatus=%x / mepc=%x / mtval=%x\n",
+            mcause, mstatus, mepc, mtval);
+    exit(1);
+}
+
+
+void init_vm(uintptr_t start_func)
+{
+    memset((void*)pt0, 0, (1 << PAGE4K_SHIFT));
+    pt1_free = 0;
+    pt2_free = 0;
 
     //  map the RAM segment
-    for (int i = 0; i < (0x800000 >> 12); i++) {
-        uintptr_t offset = (uintptr_t)i << 12;
-        map_4k_page(addr2vpn4k((uintptr_t)0x80000000 + offset),
-                    addr2ppn4k((uintptr_t)0x80000000 + offset));
-    }
+    // for (int i = 0; i < (0x800000 >> 12); i++) {
+    //     uintptr_t offset = (uintptr_t)i << 12;
+    //     map_4k_page(addr2vpn4k((uintptr_t)0x80000000 + offset),
+    //                 addr2ppn4k((uintptr_t)0x80000000 + offset));
+    // }
 
     //  map the UART
     map_4k_page(addr2vpn4k(0x10000000), addr2ppn4k(0x10000000));
@@ -142,6 +166,11 @@ void init_vm(uintptr_t start_func)
         map_4k_page(addr2vpn4k(0x02000000 + offset),
                     addr2ppn4k(0x02000000 + offset));
     }
+
+    //  Setupt exception handler (to manage page faults)
+    set_exc_instr_flt_handler(cpu_id(), page_fault_handler);
+    set_exc_ld_flt_handler(cpu_id(), page_fault_handler);
+    set_exc_st_flt_handler(cpu_id(), page_fault_handler);
 
     // Set up PMPs if present, ignoring illegal instruction trap if not.
     uintptr_t pmpc = PMP_NAPOT | PMP_R | PMP_W | PMP_X;

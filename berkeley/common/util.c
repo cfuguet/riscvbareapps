@@ -28,4 +28,5 @@ void printStats()
   for (int i = 1; i < NUM_COUNTERS; i++) {
     printf(", %s = %lu", counter_names[i], counters[i]);
   }
+  puts("\n");
 }

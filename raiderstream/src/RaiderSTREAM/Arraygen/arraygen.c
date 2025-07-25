@@ -60,5 +60,5 @@ void initRandomIdxArray(int *array, int nelems) {
 ------------------------------------------------------------
 */
 extern void initUserIdxArray(int *array, int nelems) {
-	/* TODO: Write your function here */
+	initRandomIdxArray(array, nelems);
 }

@@ -103,7 +103,7 @@ void runBenchOMP(RSOpts *Opts) {
   if (!RS) {
     std::cout << "ERROR: COULD NOT ALLOCATE RS_OMP OBJECT" << std::endl;
     return;
-  }  
+  }
 
   /* Allocate Data */
   if (!RS->allocateData()) {
@@ -112,7 +112,7 @@ void runBenchOMP(RSOpts *Opts) {
     return;
   }
 
-  /* Execute the benchmark */ 
+  /* Execute the benchmark */
   if (!RS->execute(Opts->TIMES, Opts->MBPS, Opts->FLOPS, Opts->BYTES, Opts->FLOATOPS)) {
     std::cout << "ERROR: COULD NOT EXECUTE BENCHMARK FOR RS_OMP" << std::endl;
     RS->freeData();

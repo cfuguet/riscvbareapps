@@ -31,7 +31,7 @@ private:
   ssize_t *idx1;
   ssize_t *idx2;
   ssize_t *idx3;
-  ssize_t scalar;
+  double scalar;
 
 public:
   RS_RISCVBARELIB(const RSOpts& opts);

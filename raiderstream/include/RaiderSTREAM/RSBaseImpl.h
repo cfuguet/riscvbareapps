@@ -108,6 +108,7 @@ public:
     ssize_t i, idx;
     std::vector<unsigned char> flags(nelems, 0); // Use std::vector to avoid allocation warnings
     for (i = 0; i < nelems; i++) {
+#if 1
       success = 0;
       while (success == 0) {
         idx = static_cast<ssize_t>(rand()) % nelems;
@@ -117,6 +118,11 @@ public:
           success = 1;
         }
       }
+#else
+      idx = (i + 49) % nelems;
+      array[i] = idx;
+      flags[idx] = 1;
+#endif
     }
   }
 

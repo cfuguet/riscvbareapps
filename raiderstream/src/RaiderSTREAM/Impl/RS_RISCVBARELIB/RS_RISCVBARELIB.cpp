@@ -32,7 +32,9 @@ RS_RISCVBARELIB::RS_RISCVBARELIB(const RSOpts& opts) :
   idx2(nullptr),
   idx3(nullptr),
   scalar(3.0)
-{}
+{
+  std::cout << "Building RS_RISCVBARELIB: scalar=" << scalar << std::endl;
+}
 
 RS_RISCVBARELIB::~RS_RISCVBARELIB() {}
 
@@ -43,6 +45,13 @@ bool RS_RISCVBARELIB::allocateData() {
   idx1 = new ssize_t[streamArraySize];
   idx2 = new ssize_t[streamArraySize];
   idx3 = new ssize_t[streamArraySize];
+
+  if (a == nullptr) return false;
+  if (b == nullptr) return false;
+  if (c == nullptr) return false;
+  if (idx1 == nullptr) return false;
+  if (idx2 == nullptr) return false;
+  if (idx3 == nullptr) return false;
 
   #ifdef _ARRAYGEN_
     initReadIdxArray(idx1, streamArraySize, "RaiderSTREAM/arraygen/IDX1.txt");
@@ -77,7 +86,7 @@ bool RS_RISCVBARELIB::allocateData() {
 
 bool RS_RISCVBARELIB::freeData() {
   if ( a ) { delete[] a; }
-  if ( b ) { delete[] b; }  
+  if ( b ) { delete[] b; }
   if ( c ) { delete[] c; }
   if ( idx1 ) { delete[] idx1; }
   if ( idx2 ) { delete[] idx2; }
@@ -95,6 +104,8 @@ bool RS_RISCVBARELIB::execute(
   double flops      = 0.0;
 
   RSBaseImpl::RSKernelType kType = getKernelType();
+
+  std::cout << "Executing RS_RISCVBARELIB: scalar=" << scalar << std::endl;
 
   switch ( kType ) {
     /* SEQUENTIAL KERNELS */
@@ -194,7 +205,7 @@ bool RS_RISCVBARELIB::execute(
       MBPS[RSBaseImpl::RS_GATHER_TRIAD] = mbps;
       FLOPS[RSBaseImpl::RS_GATHER_TRIAD] = flops;
       break;
-    
+
     /* SCATTER KERNELS */
     case RSBaseImpl::RS_SCATTER_COPY:
       startTime = mySecond();
@@ -243,7 +254,7 @@ bool RS_RISCVBARELIB::execute(
       MBPS[RSBaseImpl::RS_SCATTER_TRIAD] = mbps;
       FLOPS[RSBaseImpl::RS_SCATTER_TRIAD] = flops;
       break;
-    
+
     /* SCATTER-GATHER KERNELS */
     case RSBaseImpl::RS_SG_COPY:
       startTime = mySecond();
@@ -292,7 +303,7 @@ bool RS_RISCVBARELIB::execute(
       MBPS[RSBaseImpl::RS_SG_TRIAD] = mbps;
       FLOPS[RSBaseImpl::RS_SG_TRIAD] = flops;
       break;
-    
+
     /* CENTRAL KERNELS */
     case RSBaseImpl::RS_CENTRAL_COPY:
       startTime = mySecond();
@@ -315,7 +326,7 @@ bool RS_RISCVBARELIB::execute(
       flops = calculateFLOPS(FLOATOPS[RSBaseImpl::RS_CENTRAL_SCALE], runTime);
       TIMES[RSBaseImpl::RS_CENTRAL_SCALE] = runTime;
       MBPS[RSBaseImpl::RS_CENTRAL_SCALE] = mbps;
-      FLOPS[RSBaseImpl::RS_CENTRAL_SCALE] = flops;   
+      FLOPS[RSBaseImpl::RS_CENTRAL_SCALE] = flops;
       break;
 
     case RSBaseImpl::RS_CENTRAL_ADD:
@@ -327,7 +338,7 @@ bool RS_RISCVBARELIB::execute(
       flops = calculateFLOPS(FLOATOPS[RSBaseImpl::RS_CENTRAL_ADD], runTime);
       TIMES[RSBaseImpl::RS_CENTRAL_ADD] = runTime;
       MBPS[RSBaseImpl::RS_CENTRAL_ADD] = mbps;
-      FLOPS[RSBaseImpl::RS_CENTRAL_ADD] = flops;   
+      FLOPS[RSBaseImpl::RS_CENTRAL_ADD] = flops;
       break;
 
     case RSBaseImpl::RS_CENTRAL_TRIAD:
@@ -339,12 +350,20 @@ bool RS_RISCVBARELIB::execute(
       flops = calculateFLOPS(FLOATOPS[RSBaseImpl::RS_CENTRAL_TRIAD], runTime);
       TIMES[RSBaseImpl::RS_CENTRAL_TRIAD] = runTime;
       MBPS[RSBaseImpl::RS_CENTRAL_TRIAD] = mbps;
-      FLOPS[RSBaseImpl::RS_CENTRAL_TRIAD] = flops;   
+      FLOPS[RSBaseImpl::RS_CENTRAL_TRIAD] = flops;
       break;
 
     /* ALL KERNELS */
     case RSBaseImpl::RS_ALL:
       /* RS_SEQ_COPY */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): seqCopy"
+        << "(a=" << a
+        << ",b=" << b
+        << ",c=" << c
+        << ",size=" << streamArraySize
+        << ")" << std::endl;
+#endif
       startTime = mySecond();
       seqCopy(a, b, c, streamArraySize);
       endTime = mySecond();
@@ -356,6 +375,15 @@ bool RS_RISCVBARELIB::execute(
       FLOPS[RSBaseImpl::RS_SEQ_COPY] = flops;
 
       /* RS_SEQ_SCALE */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): seqScale"
+        << "(a=" << a
+        << ",b=" << b
+        << ",c=" << c
+        << ",scalar=" << scalar
+        << ",size=" << streamArraySize
+        << ")" << std::endl;
+#endif
       startTime = mySecond();
       seqScale(a, b, c, streamArraySize, scalar);
       endTime = mySecond();
@@ -367,6 +395,14 @@ bool RS_RISCVBARELIB::execute(
       FLOPS[RSBaseImpl::RS_SEQ_SCALE] = flops;
 
       /* RS_SEQ_ADD */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): seqAdd"
+        << "(a=" << a
+        << ",b=" << b
+        << ",c=" << c
+        << ",size=" << streamArraySize
+        << ")" << std::endl;
+#endif
       startTime = mySecond();
       seqAdd(a, b, c, streamArraySize);
       endTime = mySecond();
@@ -378,6 +414,15 @@ bool RS_RISCVBARELIB::execute(
       FLOPS[RSBaseImpl::RS_SEQ_ADD] = flops;
 
       /* RS_SEQ_TRIAD */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): seqTriad"
+        << "(a=" << a
+        << ",b=" << b
+        << ",c=" << c
+        << ",scalar=" << scalar
+        << ",size=" << streamArraySize
+        << ")" << std::endl;
+#endif
       startTime = mySecond();
       seqTriad(a, b, c, streamArraySize, scalar);
       endTime = mySecond();
@@ -389,6 +434,15 @@ bool RS_RISCVBARELIB::execute(
       FLOPS[RSBaseImpl::RS_SEQ_TRIAD] = flops;
 
       /* RS_GATHER_COPY */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): gatherCopy"
+        << "(a=" << a
+        << ",b=" << b
+        << ",c=" << c
+        << ",idx1=" << idx1
+        << ",size=" << streamArraySize
+        << ")" << std::endl;
+#endif
       startTime = mySecond();
       gatherCopy(a, b, c, idx1, streamArraySize);
       endTime = mySecond();
@@ -400,6 +454,16 @@ bool RS_RISCVBARELIB::execute(
       FLOPS[RSBaseImpl::RS_GATHER_COPY] = flops;
 
       /* RS_GATHER_SCALE */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): gatherScale"
+        << "(a=" << a
+        << ",b=" << b
+        << ",c=" << c
+        << ",idx1=" << idx1
+        << ",scalar=" << scalar
+        << ",size=" << streamArraySize
+        << ")" << std::endl;
+#endif
       startTime = mySecond();
       gatherScale(a, b, c, idx1, streamArraySize, scalar);
       endTime = mySecond();
@@ -411,6 +475,16 @@ bool RS_RISCVBARELIB::execute(
       FLOPS[RSBaseImpl::RS_GATHER_SCALE] = flops;
 
       /* RS_GATHER_ADD */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): gatherAdd"
+        << "(a=" << a
+        << ",b=" << b
+        << ",c=" << c
+        << ",idx1=" << idx1
+        << ",idx2=" << idx2
+        << ",size=" << streamArraySize
+        << ")" << std::endl;
+#endif
       startTime = mySecond();
       gatherAdd(a, b, c, idx1, idx2, streamArraySize);
       endTime = mySecond();
@@ -422,6 +496,17 @@ bool RS_RISCVBARELIB::execute(
       FLOPS[RSBaseImpl::RS_GATHER_ADD] = flops;
 
       /* RS_GATHER_TRIAD */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): gatherTriad"
+        << "(a=" << a
+        << ",b=" << b
+        << ",c=" << c
+        << ",idx1=" << idx1
+        << ",idx2=" << idx2
+        << ",scalar=" << scalar
+        << ",size=" << streamArraySize
+        << ")" << std::endl;
+#endif
       startTime = mySecond();
       gatherTriad(a, b, c, idx1, idx2, streamArraySize, scalar);
       endTime = mySecond();
@@ -433,6 +518,9 @@ bool RS_RISCVBARELIB::execute(
       FLOPS[RSBaseImpl::RS_GATHER_TRIAD] = flops;
 
       /* RS_SCATTER_COPY */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): ScatterCopy" << std::endl;
+#endif
       startTime = mySecond();
       scatterCopy(a, b, c, idx1, streamArraySize);
       endTime = mySecond();
@@ -444,6 +532,9 @@ bool RS_RISCVBARELIB::execute(
       FLOPS[RSBaseImpl::RS_SCATTER_COPY] = flops;
 
       /* RS_SCATTER_SCALE */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): ScatterScale" << std::endl;
+#endif
       startTime = mySecond();
       scatterScale(a, b, c, idx1, streamArraySize, scalar);
       endTime = mySecond();
@@ -455,6 +546,9 @@ bool RS_RISCVBARELIB::execute(
       FLOPS[RSBaseImpl::RS_SCATTER_SCALE] = flops;
 
       /* RS_SCATTER_ADD */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): ScatterAdd" << std::endl;
+#endif
       startTime = mySecond();
       scatterAdd(a, b, c, idx1, streamArraySize);
       endTime = mySecond();
@@ -466,6 +560,9 @@ bool RS_RISCVBARELIB::execute(
       FLOPS[RSBaseImpl::RS_SCATTER_ADD] = flops;
 
       /* RS_SCATTER_TRIAD */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): ScatterTriad" << std::endl;
+#endif
       startTime = mySecond();
       scatterTriad(a, b, c, idx1, streamArraySize, scalar);
       endTime = mySecond();
@@ -477,6 +574,9 @@ bool RS_RISCVBARELIB::execute(
       FLOPS[RSBaseImpl::RS_SCATTER_TRIAD] = flops;
 
       /* RS_SG_COPY */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): SgCopy" << std::endl;
+#endif
       startTime = mySecond();
       sgCopy(a, b, c, idx1, idx2, streamArraySize);
       endTime = mySecond();
@@ -488,6 +588,9 @@ bool RS_RISCVBARELIB::execute(
       FLOPS[RSBaseImpl::RS_SG_COPY] = flops;
 
       /* RS_SG_SCALE */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): SgScale" << std::endl;
+#endif
       startTime = mySecond();
       sgScale(a, b, c, idx1, idx2, streamArraySize, scalar);
       endTime = mySecond();
@@ -499,6 +602,9 @@ bool RS_RISCVBARELIB::execute(
       FLOPS[RSBaseImpl::RS_SG_SCALE] = flops;
 
       /* RS_SG_ADD */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): SgAdd" << std::endl;
+#endif
       startTime = mySecond();
       sgAdd(a, b, c, idx1, idx2, idx3, streamArraySize);
       endTime = mySecond();
@@ -510,6 +616,9 @@ bool RS_RISCVBARELIB::execute(
       FLOPS[RSBaseImpl::RS_SG_ADD] = flops;
 
       /* RS_SG_TRIAD */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): SgTriad" << std::endl;
+#endif
       startTime = mySecond();
       sgTriad(a, b, c, idx1, idx2, idx3, streamArraySize, scalar);
       endTime = mySecond();
@@ -521,6 +630,9 @@ bool RS_RISCVBARELIB::execute(
       FLOPS[RSBaseImpl::RS_SG_TRIAD] = flops;
 
       /* RS_CENTRAL_COPY */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): centralCopy" << std::endl;
+#endif
       startTime = mySecond();
       centralCopy(a, b, c, streamArraySize);
       endTime = mySecond();
@@ -532,6 +644,9 @@ bool RS_RISCVBARELIB::execute(
       FLOPS[RSBaseImpl::RS_CENTRAL_COPY] = flops;
 
       /* RS_CENTRAL_SCALE */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): centralScale" << std::endl;
+#endif
       startTime = mySecond();
       centralScale(a, b, c, streamArraySize, scalar);
       endTime = mySecond();
@@ -540,9 +655,12 @@ bool RS_RISCVBARELIB::execute(
       flops = calculateFLOPS(FLOATOPS[RSBaseImpl::RS_CENTRAL_SCALE], runTime);
       TIMES[RSBaseImpl::RS_CENTRAL_SCALE] = runTime;
       MBPS[RSBaseImpl::RS_CENTRAL_SCALE] = mbps;
-      FLOPS[RSBaseImpl::RS_CENTRAL_SCALE] = flops;   
+      FLOPS[RSBaseImpl::RS_CENTRAL_SCALE] = flops;
 
       /* RS_CENTRAL_ADD */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): centralAdd" << std::endl;
+#endif
       startTime = mySecond();
       centralAdd(a, b, c, streamArraySize);
       endTime = mySecond();
@@ -551,9 +669,12 @@ bool RS_RISCVBARELIB::execute(
       flops = calculateFLOPS(FLOATOPS[RSBaseImpl::RS_CENTRAL_ADD], runTime);
       TIMES[RSBaseImpl::RS_CENTRAL_ADD] = runTime;
       MBPS[RSBaseImpl::RS_CENTRAL_ADD] = mbps;
-      FLOPS[RSBaseImpl::RS_CENTRAL_ADD] = flops;   
+      FLOPS[RSBaseImpl::RS_CENTRAL_ADD] = flops;
 
       /* RS_CENTRAL_TRIAD */
+#ifdef _DEBUG_
+      std::cout << "RS_RISCVBARELIB::execute(): centralTriad" << std::endl;
+#endif
       startTime = mySecond();
       centralTriad(a, b, c, streamArraySize, scalar);
       endTime = mySecond();
@@ -562,7 +683,7 @@ bool RS_RISCVBARELIB::execute(
       flops = calculateFLOPS(FLOATOPS[RSBaseImpl::RS_CENTRAL_TRIAD], runTime);
       TIMES[RSBaseImpl::RS_CENTRAL_TRIAD] = runTime;
       MBPS[RSBaseImpl::RS_CENTRAL_TRIAD] = mbps;
-      FLOPS[RSBaseImpl::RS_CENTRAL_TRIAD] = flops; 
+      FLOPS[RSBaseImpl::RS_CENTRAL_TRIAD] = flops;
       break;
 
     /* NO KERNELS, SOMETHING IS WRONG */

@@ -7,4 +7,8 @@ ifeq ($(DEBUG),1)
 CFLAGS += -DVM_DEBUG
 endif
 
+ifdef TIMER_PERIOD
+CFLAGS += -DTIMER_PERIOD=$(TIMER_PERIOD)
+endif
+
 include $(RVB_BUILD)/makefile.include

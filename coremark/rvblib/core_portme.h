@@ -21,6 +21,10 @@ Original Author: Shay Gal-on
 */
 #ifndef CORE_PORTME_H
 #define CORE_PORTME_H
+
+#include <string.h>
+#include <stdint.h>
+
 /************************/
 /* Data types and settings */
 /************************/
@@ -48,14 +52,14 @@ Original Author: Shay Gal-on
         Define to 1 if the platform has stdio.h.
 */
 #ifndef HAS_STDIO
-#define HAS_STDIO 0
+#define HAS_STDIO 1
 #endif
 /* Configuration : HAS_PRINTF
         Define to 1 if the platform has stdio.h and implements the printf
    function.
 */
 #ifndef HAS_PRINTF
-#define HAS_PRINTF 0
+#define HAS_PRINTF 1
 #endif
 
 /* Definitions : COMPILER_VERSION, COMPILER_FLAGS, MEM_LOCATION
@@ -69,11 +73,10 @@ Original Author: Shay Gal-on
 #endif
 #endif
 #ifndef COMPILER_FLAGS
-#define COMPILER_FLAGS \
-    FLAGS_STR /* "Please put compiler flags here (e.g. -o3)" */
+#define COMPILER_FLAGS FLAGS_STR
 #endif
 #ifndef MEM_LOCATION
-#define MEM_LOCATION "STACK"
+#define MEM_LOCATION "HEAP"
 #endif
 
 /* Data Types :
@@ -84,15 +87,17 @@ Original Author: Shay Gal-on
         ee_ptr_int needs to be the data type used to hold pointers, otherwise
    coremark may fail!!!
 */
-typedef signed short   ee_s16;
-typedef unsigned short ee_u16;
-typedef signed int     ee_s32;
-typedef double         ee_f32;
-typedef unsigned char  ee_u8;
-typedef unsigned int   ee_u32;
-typedef ee_u32         ee_ptr_int;
+typedef int16_t        ee_s16;
+typedef uint16_t       ee_u16;
+typedef int32_t        ee_s32;
+typedef float          ee_f32;
+typedef uint8_t        ee_u8;
+typedef uint32_t       ee_u32;
+typedef uint64_t       ee_u64;
+typedef uintptr_t      ee_ptr_int;
 typedef size_t         ee_size_t;
 #define NULL ((void *)0)
+
 /* align_mem :
         This macro is used to align an offset to point to a 32b value. It is
    used in the Matrix algorithm to initialize the input memory blocks.
@@ -102,8 +107,8 @@ typedef size_t         ee_size_t;
 /* Configuration : CORE_TICKS
         Define type of return from the timing functions.
  */
-#define CORETIMETYPE ee_u32
-typedef ee_u32 CORE_TICKS;
+#define CORETIMETYPE ee_u64
+typedef CORETIMETYPE CORE_TICKS;
 
 /* Configuration : SEED_METHOD
         Defines method to get seed values that cannot be computed at compile
@@ -127,7 +132,7 @@ typedef ee_u32 CORE_TICKS;
         MEM_STACK - to allocate the data block on the stack (NYI).
 */
 #ifndef MEM_METHOD
-#define MEM_METHOD MEM_STACK
+#define MEM_METHOD MEM_MALLOC
 #endif
 
 /* Configuration : MULTITHREAD
@@ -166,7 +171,7 @@ typedef ee_u32 CORE_TICKS;
    greater then 1.
 */
 #ifndef MAIN_HAS_NOARGC
-#define MAIN_HAS_NOARGC 0
+#define MAIN_HAS_NOARGC 1
 #endif
 
 /* Configuration : MAIN_HAS_NORETURN
@@ -193,18 +198,5 @@ typedef struct CORE_PORTABLE_S
 /* target specific init/fini */
 void portable_init(core_portable *p, int *argc, char *argv[]);
 void portable_fini(core_portable *p);
-
-#if !defined(PROFILE_RUN) && !defined(PERFORMANCE_RUN) \
-    && !defined(VALIDATION_RUN)
-#if (TOTAL_DATA_SIZE == 1200)
-#define PROFILE_RUN 1
-#elif (TOTAL_DATA_SIZE == 2000)
-#define PERFORMANCE_RUN 1
-#else
-#define VALIDATION_RUN 1
-#endif
-#endif
-
-int ee_printf(const char *fmt, ...);
 
 #endif /* CORE_PORTME_H */

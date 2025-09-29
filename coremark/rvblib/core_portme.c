@@ -15,8 +15,16 @@ limitations under the License.
 
 Original Author: Shay Gal-on
 */
+/*
+Copyright 2025 Univ. Grenoble Alpes, Inria, TIMA
+Author: Cesar Fuguet
+*/
+#include <stdlib.h>
 #include "coremark.h"
 #include "core_portme.h"
+
+/* headers from rvblib */
+#include "common/cpu.h"
 
 #if VALIDATION_RUN
 volatile ee_s32 seed1_volatile = 0x3415;
@@ -35,6 +43,25 @@ volatile ee_s32 seed3_volatile = 0x8;
 #endif
 volatile ee_s32 seed4_volatile = ITERATIONS;
 volatile ee_s32 seed5_volatile = 0;
+
+/* Function: portable_malloc
+        Provide malloc() functionality in a platform specific way.
+*/
+void *
+portable_malloc(size_t size)
+{
+    return malloc(size);
+}
+
+/* Function: portable_free
+        Provide free() functionality in a platform specific way.
+*/
+void
+portable_free(void *p)
+{
+    free(p);
+}
+
 /* Porting : Timing functions
         How to capture time and convert to seconds must be ported to whatever is
    supported by the platform. e.g. Read value from on board RTC, read value from
@@ -42,11 +69,11 @@ volatile ee_s32 seed5_volatile = 0;
    time.h and windows.h definitions included.
 */
 CORETIMETYPE
-barebones_clock()
+rvblib_clock()
 {
-#error \
-    "You must implement a method to measure time in barebones_clock()! This function should return current time.\n"
+    return cpu_cycles();
 }
+
 /* Define : TIMER_RES_DIVIDER
         Divider to trade off timer resolution and total time that can be
    measured.
@@ -55,7 +82,7 @@ barebones_clock()
    does not occur. If there are issues with the return value overflowing,
    increase this value.
         */
-#define GETMYTIME(_t)              (*_t = barebones_clock())
+#define GETMYTIME(_t)              (*_t = rvblib_clock())
 #define MYTIMEDIFF(fin, ini)       ((fin) - (ini))
 #define TIMER_RES_DIVIDER          1
 #define SAMPLE_TIME_IMPLEMENTATION 1
@@ -129,9 +156,6 @@ ee_u32 default_num_contexts = 1;
 void
 portable_init(core_portable *p, int *argc, char *argv[])
 {
-#error \
-    "Call board initialization routines in portable init (if needed), in particular initialize UART!\n"
-
     (void)argc; // prevent unused warning
     (void)argv; // prevent unused warning
 
@@ -147,6 +171,7 @@ portable_init(core_portable *p, int *argc, char *argv[])
     }
     p->portable_id = 1;
 }
+
 /* Function : portable_fini
         Target specific final code
 */

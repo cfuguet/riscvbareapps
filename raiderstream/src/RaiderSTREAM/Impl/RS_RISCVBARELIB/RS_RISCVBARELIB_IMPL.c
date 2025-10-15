@@ -8,6 +8,7 @@
 // See LICENSE in the top level directory for licensing details
 //
 
+#include <stdio.h>
 #include <sys/types.h>
 #include "common/threads.h"
 #include "common/ticket_mutex.h"
